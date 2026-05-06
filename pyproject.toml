@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gh-ocr-paddle-agent"
+version = "0.1.0"
+description = "LangGraph agent that migrates GitHub OCR repositories to PaddleOCR-oriented projects."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "langchain>=1.0",
+  "langchain-core>=1.0",
+  "langgraph>=1.0",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "streamlit>=1.45",
+  "pandas>=2.2",
+]
+
+[project.optional-dependencies]
+runtime = [
+  "paddleocr",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+gh-ocr-paddle-agent = "gh_ocr_paddle_agent.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["gh_ocr_paddle_agent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
