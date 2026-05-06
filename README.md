@@ -34,6 +34,8 @@ gh_ocr_paddle_agent/
   storage/       # 运行结果落盘
 web/
   streamlit_app.py
+.github/workflows/
+  ci.yml
 fixtures/
   repos/         # 评测样例仓库
   expectations/  # 评测期望
@@ -109,11 +111,21 @@ uv run streamlit run web/streamlit_app.py
 网页支持：
 
 - 输入 GitHub 仓库地址或本地路径
+- 一键使用内置样例仓库做演示
 - 查看 OCR 技术栈识别结果
 - 查看迁移计划与风险
+- 查看运行日志与错误信息
 - 浏览输出的改写文件
 - 查看内置评测排行榜与最近运行记录
 
 ## 说明
 
 这个项目当前聚焦在 **Python OCR 仓库** 的自动迁移上。对于复杂的业务代码、深度定制训练代码或多语言项目，会优先生成结构化迁移建议和 PaddleOCR 适配骨架，而不是承诺对任意仓库做完全无损的自动重写。
+
+## CI
+
+仓库已附带 GitHub Actions 工作流，使用 `uv` 在 Python `3.11` 上自动执行：
+
+- `uv sync --group dev`
+- `uv run pytest -q`
+- `uv run gh-ocr-paddle-agent evaluate`

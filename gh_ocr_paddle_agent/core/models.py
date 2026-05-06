@@ -46,6 +46,8 @@ class RunSummary(BaseModel):
     plan: MigrationPlan
     artifacts: list[GeneratedArtifact] = Field(default_factory=list)
     verification: VerificationResult
+    logs: list[str] = Field(default_factory=list)
+    error: str | None = None
 
 
 class EvalCaseResult(BaseModel):
@@ -75,8 +77,8 @@ class MigrationState(BaseModel):
     artifacts: list[GeneratedArtifact] = Field(default_factory=list)
     verification: VerificationResult | None = None
     logs: list[str] = Field(default_factory=list)
+    status: Literal["pending", "running", "completed", "failed"] = "pending"
     error: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return self.model_dump()
-

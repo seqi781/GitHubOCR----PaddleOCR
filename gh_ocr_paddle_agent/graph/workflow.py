@@ -14,7 +14,7 @@ from gh_ocr_paddle_agent.core.verification import verify_run
 from gh_ocr_paddle_agent.detectors.ocr_stack import detect_ocr_stack
 from gh_ocr_paddle_agent.detectors.repository import scan_repository
 from gh_ocr_paddle_agent.generators.rewrite import rewrite_repository
-from gh_ocr_paddle_agent.storage.runs import persist_summary
+from gh_ocr_paddle_agent.storage.runs import persist_failed_run, persist_summary
 
 
 class WorkflowState(TypedDict, total=False):
@@ -27,6 +27,7 @@ class WorkflowState(TypedDict, total=False):
     artifacts: list[dict]
     verification: dict
     logs: list[str]
+    status: str
     error: str | None
 
 
@@ -52,14 +53,32 @@ def build_graph():
 def create_initial_state(source: str, output_dir: str | None = None) -> MigrationState:
     run_id = datetime.utcnow().strftime("%Y%m%d%H%M%S") + "-" + uuid4().hex[:8]
     final_output_dir = Path(output_dir or RUNS_DIR / run_id)
-    return MigrationState(run_id=run_id, source=source, output_dir=str(final_output_dir))
+    return MigrationState(
+        run_id=run_id,
+        source=source,
+        output_dir=str(final_output_dir),
+        status="running",
+        logs=["Workflow initialized"],
+    )
 
 
 def run_migration(source: str, output_dir: str | None = None) -> MigrationState:
     state = create_initial_state(source, output_dir)
     app = build_graph()
-    final_state = app.invoke(state.model_dump())
-    return MigrationState.model_validate(final_state)
+    try:
+        final_state = app.invoke(state.model_dump())
+        final_model = MigrationState.model_validate(final_state)
+        return final_model.model_copy(update={"status": "completed"})
+    except Exception as exc:
+        failed_state = state.model_copy(
+            update={
+                "status": "failed",
+                "error": str(exc),
+                "logs": state.logs + [f"Workflow failed: {exc}"],
+            }
+        )
+        persist_failed_run(failed_state.model_dump(mode="json"), failed_state.output_dir)
+        return failed_state
 
 
 def _resolve_source(raw_state: WorkflowState) -> dict:
@@ -126,6 +145,11 @@ def _persist_run(raw_state: WorkflowState) -> dict:
         plan=state.plan,
         artifacts=state.artifacts,
         verification=state.verification,
+        logs=state.logs + ["Persisted migration summary JSON"],
+        error=state.error,
     )
     persist_summary(summary, state.output_dir)
-    return {"logs": state.logs + ["Persisted migration summary JSON"]}
+    return {
+        "status": "completed",
+        "logs": state.logs + ["Persisted migration summary JSON"],
+    }

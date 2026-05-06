@@ -24,11 +24,13 @@ def evaluate_fixtures() -> Path:
 
         checks = [
             detected == expected,
-            state.verification.passed if state.verification else False,
+            state.status == "completed" and (state.verification.passed if state.verification else False),
             (Path(state.output_dir) / "migration_report.md").exists(),
         ]
         score = sum(1 for item in checks if item) / len(checks)
         notes = []
+        if state.error:
+            notes.append(f"Workflow error: {state.error}")
         if detected != expected:
             notes.append(f"Detected stack mismatch: expected={expected} got={detected}")
         if state.plan and state.plan.confidence < 0.5:
@@ -55,4 +57,3 @@ def evaluate_fixtures() -> Path:
     target = EVAL_DIR / "latest_eval_report.json"
     target.write_text(report.model_dump_json(indent=2), encoding="utf-8")
     return target
-
